@@ -10,7 +10,7 @@ create a new session
 #### Response
 ```json
 {
-  "message":"session mysession created!",
+  "message":"session <session_name> created!",
   "success": true
 }
 ```
@@ -37,7 +37,7 @@ kill a session by name
 #### Response
 ```json
 {
-  "message":"session mysession killed!", 
+  "message":"session <session_name> killed!", 
   "success": true
 }
 ```
@@ -52,7 +52,7 @@ create a new window
 #### Response
 ```json
 {
-  "message":"window session_namr:window_name created!",
+  "message":"window <session_name>:<window_name> created!",
   "success":true
 }
 ```
@@ -87,7 +87,7 @@ kill a window
 #### Response
 ```json
 {
-  "message":"window session:2 killed!",
+  "message":"window <session_name>:<window_id> killed!",
   "success": true
 }
 ```
@@ -98,9 +98,9 @@ split a window, orientation can be horizontal or vertical
 - session_name, window_id & orientation required
 
 #### Response
-```
+```json
 {
-  "message":"window session_name:window_id split orientation!",
+  "message":"window <session_name>:<window_id> split <orientation>!",
   "success":true
 }
 ```
