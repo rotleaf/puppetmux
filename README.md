@@ -1,5 +1,5 @@
 # puppetmux
-_api to control tmux (trying...)_
+_api to control tmux (not there yet)_
 
 ## Sessions
 ### GET /session/new/:name

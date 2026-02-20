@@ -2,7 +2,7 @@ mod api;
 mod tmux;
 
 use crate::api::Api;
-use rand::{Rng, RngExt};
+use rand::RngExt;
 use warp::Filter;
 
 pub type Ret<T> = Result<T, Box<dyn std::error::Error>>;
@@ -44,10 +44,17 @@ async fn main() {
                 .collect();
             Ok::<_, warp::Rejection>(Api::new_session(&name).await)
         });
+
+    let list_windows = warp::path!("window" / "list" / String)
+        .and(warp::get())
+        .and_then(|sname: String| async move {
+            Ok::<_, warp::Rejection>(Api::list_windows(&sname).await)
+        });
     let routes = list_sessions
         .or(new_session_)
         .or(new_session_named)
         .or(kill_session)
+        .or(list_windows)
         .or(not_found);
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }

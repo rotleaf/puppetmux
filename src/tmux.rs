@@ -39,4 +39,14 @@ impl Tmux {
     pub fn new_session(session_name: &str) -> Ret<String> {
         Ok(Self::run(&["new-session", "-d", "-s", session_name])?)
     }
+
+    pub fn list_windows(session_name: &str) -> Ret<String> {
+        Ok(Self::run(&[
+            "list-windows",
+            "-t",
+            session_name,
+            "-F",
+            "#{window_index}|#{window_name}|#{window_active}",
+        ])?)
+    }
 }
