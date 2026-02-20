@@ -7,6 +7,57 @@ use warp::{
 pub struct Api;
 
 impl Api {
+    pub async fn split_window(target: &str, orientation: &str) -> impl warp::Reply + use<> {
+        // target = <session_name>:<window_id>
+        let parts = target.split(":").collect::<Vec<&str>>();
+
+        if parts.len() != 2 {
+            return wstatus(
+                wjson(&json!({
+                    "success": false,
+                    "error": "incorrect use, expected session_name:window_id"
+                })),
+                SC::BAD_REQUEST,
+            );
+        }
+
+        let tsession = parts[0];
+
+        let win_idx = match parts[1].parse::<u16>() {
+            Ok(v) => v,
+            Err(_) => {
+                return wstatus(
+                    wjson(&json!({"success": false, "error": "window id should be a number"})),
+                    SC::BAD_REQUEST,
+                );
+            }
+        };
+
+        let or = if orientation == "vertical" || orientation == "vert" || orientation == "v" {
+            "-v"
+        } else if orientation == "horizontal" || orientation == "hoz" || orientation == "h" {
+            "-h"
+        } else {
+            return wstatus(
+                wjson(&json!({"success": false, "error": "invalid orientation"})),
+                SC::BAD_REQUEST,
+            );
+        };
+
+        match Tmux::split_window(&tsession, win_idx, &or) {
+            Ok(_) => wstatus(
+                wjson(
+                    &json!({"success": true, "error": format!("window {target} split {orientation}!")}),
+                ),
+                SC::OK,
+            ),
+            Err(e) => wstatus(
+                wjson(&json!({"success": false, "error": e.to_string()})),
+                SC::INTERNAL_SERVER_ERROR,
+            ),
+        }
+    }
+
     pub async fn new_window(session_name: &str, window_name: &str) -> impl warp::Reply + use<> {
         match Tmux::new_window(session_name, window_name) {
             Ok(_) => wstatus(
@@ -28,7 +79,7 @@ impl Api {
         if parts.len() != 2 {
             return wstatus(
                 wjson(
-                    &json!({"success":false, "message": "Invalid Usage, expected session_name:window_id"}),
+                    &json!({"success":false, "error": "Invalid Usage, expected session_name:window_id"}),
                 ),
                 SC::BAD_REQUEST,
             );

@@ -68,4 +68,14 @@ impl Tmux {
             window_name,
         ])?)
     }
+
+    pub fn split_window(session_name: &str, win_id: u16, or: &str) -> Ret<String> {
+        Ok(Self::run(&[
+            "split-window",
+            "-d",
+            "-t",
+            &format!("{session_name}:{win_id}"),
+            or,
+        ])?)
+    }
 }

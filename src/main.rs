@@ -2,6 +2,7 @@ mod api;
 mod tmux;
 
 use crate::api::Api;
+use colored::Colorize;
 use rand::RngExt;
 use warp::Filter;
 
@@ -76,6 +77,25 @@ async fn main() {
             Ok::<_, warp::Rejection>(Api::new_window(&sess, &win).await)
         });
 
+    // split  awindow, /window/split/<session>:<winid>/orientation
+    let split_window = warp::path!("window" / "split" / String / String)
+        .and(warp::get())
+        .and_then(|targets: String, orientation: String| async move {
+            Ok::<_, warp::Rejection>(Api::split_window(&targets, &orientation).await)
+        });
+
+    let logger = warp::log::custom(|info| {
+        let status = info.status();
+        let cst = match status.as_u16() {
+            200..=299 => format!("{}", status.as_str().green().bold()),
+            300..=399 => format!("{}", status.as_str().yellow().bold()),
+            400..=499 => format!("{}", status.as_str().red().bold()),
+            500..=599 => format!("{}", status.as_str().magenta().bold()),
+            _ => format!("{}", status),
+        };
+        println!("{} {} {}", cst, info.method(), info.path());
+    });
+
     let routes = list_sessions
         .or(new_session_) // random session name
         .or(kill_window)
@@ -84,7 +104,10 @@ async fn main() {
         .or(list_windows)
         .or(new_window_) // random window name
         .or(new_window) // named window
-        .or(not_found);
+        .or(split_window)
+        .or(not_found)
+        .with(logger);
 
+    println!("{} running on port 3030", "PuppetMux".bold().blue());
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
