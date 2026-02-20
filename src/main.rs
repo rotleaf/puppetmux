@@ -50,11 +50,20 @@ async fn main() {
         .and_then(|sname: String| async move {
             Ok::<_, warp::Rejection>(Api::list_windows(&sname).await)
         });
+
+    let kill_window = warp::path!("window" / "kill" / String)
+        .and(warp::get())
+        .and_then(|target: String| async move {
+            Ok::<_, warp::Rejection>(Api::kill_window(target).await)
+        });
+
     let routes = list_sessions
         .or(new_session_)
+        .or(kill_window)
         .or(new_session_named)
         .or(kill_session)
         .or(list_windows)
         .or(not_found);
+
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }

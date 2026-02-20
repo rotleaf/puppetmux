@@ -49,4 +49,12 @@ impl Tmux {
             "#{window_index}|#{window_name}|#{window_active}",
         ])?)
     }
+
+    pub fn kill_window(session_name: &str, win_idx: u16) -> Ret<String> {
+        Ok(Self::run(&[
+            "kill-window",
+            "-t",
+            &format!("{session_name}:{win_idx}"),
+        ])?)
+    }
 }

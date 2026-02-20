@@ -2,8 +2,10 @@
 _api to control tmux (not there yet)_
 
 ## Sessions
-### GET /session/new/:name
-create a new session, name is optional
+### GET /session/new/<session_name>
+create a new session
+
+- session_name is optional
 
 #### Response
 ```json
@@ -21,10 +23,42 @@ list all active sessions
 ]
 ```
 
-### GET session/kill/:name
+### GET /session/kill/<session_name>
 kill a session by name
+
+- session_name is required
 
 #### Response
 ```json
 {"message":"session mysession killed!"}
+```
+
+## windows
+### GET /window/list/<session_name>
+list windows in a session
+
+- session_name is required 
+
+#### Response 
+```json
+[
+    {
+        "active":"0",
+        "index":"1",
+        "name":"win_2"
+    },
+    {
+        "active":"0",
+        "index":"3",
+        "name":"win_4"
+    }
+]
+```
+
+### GET /window/kill/<session_name>:<window_id>
+kill a window
+
+#### Response
+```json
+{"message":"window session:2 killed!"}
 ```
