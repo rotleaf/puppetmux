@@ -47,7 +47,7 @@ impl Api {
         match Tmux::split_window(&tsession, win_idx, &or) {
             Ok(_) => wstatus(
                 wjson(
-                    &json!({"success": true, "error": format!("window {target} split {orientation}!")}),
+                    &json!({"success": true, "message": format!("window {target} split {orientation}!")}),
                 ),
                 SC::OK,
             ),
