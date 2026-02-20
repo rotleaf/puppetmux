@@ -57,4 +57,15 @@ impl Tmux {
             &format!("{session_name}:{win_idx}"),
         ])?)
     }
+
+    pub fn new_window(session_name: &str, window_name: &str) -> Ret<String> {
+        Ok(Self::run(&[
+            "new-window",
+            "-d",
+            "-t",
+            session_name,
+            "-n",
+            window_name,
+        ])?)
+    }
 }

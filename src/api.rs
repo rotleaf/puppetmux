@@ -7,6 +7,21 @@ use warp::{
 pub struct Api;
 
 impl Api {
+    pub async fn new_window(session_name: &str, window_name: &str) -> impl warp::Reply + use<> {
+        match Tmux::new_window(session_name, window_name) {
+            Ok(_) => wstatus(
+                wjson(
+                    &json!({"success": true, "message": format!("window {session_name}:{window_name} created!")}),
+                ),
+                SC::OK,
+            ),
+            Err(e) => wstatus(
+                wjson(&json!({"success": false, "error": e.to_string()})),
+                SC::INTERNAL_SERVER_ERROR,
+            ),
+        }
+    }
+
     pub async fn kill_window(target: String) -> impl warp::Reply + use<> {
         let parts = &target.split(":").collect::<Vec<&str>>();
 
@@ -31,12 +46,12 @@ impl Api {
         match Tmux::kill_window(&session_name, idx) {
             Ok(_) => wstatus(
                 wjson(
-                    &json!({"message":format!("window {session_name}:{idx} killed!")}),
+                    &json!({"success": true, "message":format!("window {session_name}:{idx} killed!")}),
                 ),
                 SC::OK,
             ),
             Err(e) => wstatus(
-                wjson(&json!({"error":e.to_string()})),
+                wjson(&json!({"success": false, "error":e.to_string()})),
                 SC::INTERNAL_SERVER_ERROR,
             ),
         }
@@ -47,7 +62,7 @@ impl Api {
             Ok(res) => {
                 let windows = res.split("\n").collect::<Vec<&str>>();
                 let result = windows
-                    .into_iter()
+                    .iter()
                     .map(|s| {
                         let parts = s.split("|").collect::<Vec<&str>>();
                         json!({
@@ -57,10 +72,11 @@ impl Api {
                         })
                     })
                     .collect::<Vec<Value>>();
-                wstatus(wjson(&result), SC::OK)
+
+                wstatus(wjson(&json!({"success": true, "windows": result})), SC::OK)
             }
             Err(e) => wstatus(
-                wjson(&json!({"error":e.to_string()})),
+                wjson(&json!({"success": false, "error":e.to_string()})),
                 SC::INTERNAL_SERVER_ERROR,
             ),
         }
@@ -69,11 +85,11 @@ impl Api {
     pub async fn new_session(name: &str) -> impl warp::Reply + use<> {
         match Tmux::new_session(name) {
             Ok(_) => wstatus(
-                wjson(&json!({"message":format!("session {name} created!")})),
+                wjson(&json!({"success": true, "message":format!("session {name} created!")})),
                 SC::OK,
             ),
             Err(e) => wstatus(
-                wjson(&json!({"error":e.to_string()})),
+                wjson(&json!({"success": false, "error":e.to_string()})),
                 SC::INTERNAL_SERVER_ERROR,
             ),
         }
@@ -85,12 +101,12 @@ impl Api {
                 // tmux won't reply to this command,
                 // this becomes successful
                 wstatus(
-                    wjson(&json!({"message":format!("session {name} killed!")})),
+                    wjson(&json!({"success": true, "message":format!("session {name} killed!")})),
                     SC::OK,
                 )
             }
             Err(e) => wstatus(
-                wjson(&json!({"error":e.to_string()})),
+                wjson(&json!({"success": false, "error":e.to_string()})),
                 SC::INTERNAL_SERVER_ERROR,
             ),
         }
@@ -101,7 +117,7 @@ impl Api {
             Ok(out) => {
                 let sessions = out.split("\n").collect::<Vec<&str>>();
                 let out = sessions
-                    .into_iter()
+                    .iter()
                     .map(|s| {
                         let parts = s.split("|").collect::<Vec<&str>>();
                         json!({
@@ -111,10 +127,10 @@ impl Api {
                         })
                     })
                     .collect::<Vec<Value>>();
-                wstatus(wjson(&out), SC::OK)
+                wstatus(wjson(&json!({"success": true, "sessions": &out})), SC::OK)
             }
             Err(e) => wstatus(
-                wjson(&json!({"error":e.to_string()})),
+                wjson(&json!({"success": false, "error":e.to_string()})),
                 SC::INTERNAL_SERVER_ERROR,
             ),
         }

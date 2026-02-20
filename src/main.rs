@@ -7,6 +7,14 @@ use warp::Filter;
 
 pub type Ret<T> = Result<T, Box<dyn std::error::Error>>;
 
+pub fn randstr() -> String {
+    rand::rng()
+        .sample_iter(rand::distr::Alphanumeric)
+        .take(8)
+        .map(char::from)
+        .collect()
+}
+
 #[tokio::main]
 async fn main() {
     // get sessions
@@ -28,7 +36,7 @@ async fn main() {
             Ok::<_, warp::Rejection>(Api::kill_session(&name).await)
         });
 
-    let new_session_named = warp::path!("session" / "new" / String)
+    let new_session = warp::path!("session" / "new" / String)
         .and(warp::get())
         .and_then(
             |name: String| async move { Ok::<_, warp::Rejection>(Api::new_session(&name).await) },
@@ -37,11 +45,7 @@ async fn main() {
     let new_session_ = warp::path!("session" / "new")
         .and(warp::get())
         .and_then(|| async {
-            let name: String = rand::rng()
-                .sample_iter(rand::distr::Alphanumeric)
-                .take(8)
-                .map(char::from)
-                .collect();
+            let name: String = randstr();
             Ok::<_, warp::Rejection>(Api::new_session(&name).await)
         });
 
@@ -57,12 +61,29 @@ async fn main() {
             Ok::<_, warp::Rejection>(Api::kill_window(target).await)
         });
 
+    // new window, random name
+    let new_window_ = warp::path!("window" / "new" / String)
+        .and(warp::get())
+        .and_then(|sess: String| async move {
+            let winname: String = randstr();
+            Ok::<_, warp::Rejection>(Api::new_window(&sess, &winname).await)
+        });
+
+    // new window, defined name
+    let new_window = warp::path!("window" / "new" / String / String)
+        .and(warp::get())
+        .and_then(|sess: String, win: String| async move {
+            Ok::<_, warp::Rejection>(Api::new_window(&sess, &win).await)
+        });
+
     let routes = list_sessions
-        .or(new_session_)
+        .or(new_session_) // random session name
         .or(kill_window)
-        .or(new_session_named)
+        .or(new_session) // named session
         .or(kill_session)
         .or(list_windows)
+        .or(new_window_) // random window name
+        .or(new_window) // named window
         .or(not_found);
 
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
