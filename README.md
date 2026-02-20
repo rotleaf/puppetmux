@@ -92,7 +92,8 @@ kill a window
 }
 ```
 
-### GET /window/split/session_name:window_id/orientation
+### GET /window/split/<session_name>:<window_id>/<orientation>
+split a window, orientation can be horizontal or vertical
 
 - session_name, window_id & orientation required
 
