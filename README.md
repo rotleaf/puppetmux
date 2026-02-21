@@ -104,3 +104,78 @@ split a window, orientation can be horizontal or vertical
   "success":true
 }
 ```
+
+## Panes
+### GET /pane/list/<session_name>:<window_id>
+list panes in a window
+
+- session_name & window_id are required
+
+#### Response
+```json
+{
+  "panes": [
+    {
+      "active": true,
+      "command": "empty",
+      "height": "20",
+      "id": "%0",
+      "index": "0",
+      "last_program": "zsh",
+      "pid": "1927",
+      "width": "82"
+    },
+    {
+      "active": false,
+      "command": "/system/bin/ping -q google.com",
+      "height": "19",
+      "id": "%1",
+      "index": "1",
+      "last_program": "ping",
+      "pid": "1935",
+      "width": "82"
+    }
+  ],
+  "success": true
+}
+```
+
+### GET /pane/select/<session_name>:<window_id>.<pane_id>
+select a pane to make it active
+
+- session_name, window_id & pane_id are required
+
+#### Response
+```json
+{
+  "message": "pane <session_name>:<window_id>.<pane_id> selected!",
+  "success": true
+}
+```
+
+### GET /pane/kill/<session_name>:<window_id>.<pane_id>
+kill a pane 
+
+- session_name, window_id & pane_id are required 
+
+#### Response
+```json
+{
+  "message": "pane <session_name>:<window_id>.<pane_id> killed!",
+  "success": true
+}
+```
+
+### GET /pane/read/<session_name>:<window_id>.<pane_id>
+read contents of a pane
+
+- session_name, window_id & pane_id are required 
+_returns unfiltered content_
+
+#### Response 
+```json
+{
+  "output": "whatever is in the shell",
+  "success": true
+}
+```

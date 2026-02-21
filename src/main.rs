@@ -84,6 +84,30 @@ async fn main() {
             Ok::<_, warp::Rejection>(Api::split_window(&targets, &orientation).await)
         });
 
+    let list_panes = warp::path!("pane" / "list" / String)
+        .and(warp::get())
+        .and_then(|target: String| async move {
+            Ok::<_, warp::Rejection>(Api::list_panes(&target).await)
+        });
+
+    let select_pane = warp::path!("pane" / "select" / String)
+        .and(warp::get())
+        .and_then(|target: String| async move {
+            Ok::<_, warp::Rejection>(Api::select_pane(&target).await)
+        });
+
+    let kill_pane = warp::path!("pane" / "kill" / String)
+        .and(warp::get())
+        .and_then(
+            |targ: String| async move { Ok::<_, warp::Rejection>(Api::kill_pane(&targ).await) },
+        );
+
+    let read_pane = warp::path!("pane" / "read" / String)
+        .and(warp::get())
+        .and_then(
+            |targ: String| async move { Ok::<_, warp::Rejection>(Api::read_pane(&targ).await) },
+        );
+
     let logger = warp::log::custom(|info| {
         let status = info.status();
         let cst = match status.as_u16() {
@@ -105,6 +129,10 @@ async fn main() {
         .or(new_window_) // random window name
         .or(new_window) // named window
         .or(split_window)
+        .or(list_panes)
+        .or(select_pane)
+        .or(kill_pane)
+        .or(read_pane)
         .or(not_found)
         .with(logger);
 

@@ -13,8 +13,21 @@ pub enum TmuxErr {
 pub struct Tmux;
 
 impl Tmux {
+    pub fn installed() -> bool {
+        Command::new("sh")
+            .args(["-c", "command -v tmux"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+
     pub fn run(args: &[&str]) -> Result<String, TmuxErr> {
+        if !Self::installed() {
+            return Err(TmuxErr::TmuxE("tmux not installed".into()));
+        }
+
         let out = Command::new("tmux").args(args).output()?;
+
         if out.status.success() {
             Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
         } else {
@@ -77,5 +90,51 @@ impl Tmux {
             &format!("{session_name}:{win_id}"),
             or,
         ])?)
+    }
+
+    pub fn select_pane(session: &str, win_id: u16, pane_id: u16) -> Ret<String> {
+        Ok(Self::run(&[
+            "select-pane",
+            "-t",
+            &format!("{session}:{win_id}.{pane_id}"),
+        ])?)
+    }
+
+    pub fn kill_pane(session: &str, win_id: u16, pane_id: u16) -> Ret<String> {
+        Ok(Self::run(&[
+            "kill-pane",
+            "-t",
+            &format!("{session}:{win_id}.{pane_id}"),
+        ])?)
+    }
+
+    pub fn list_panes(session_name: &str, win_id: u16) -> Ret<String> {
+        Ok(Self::run(&[
+            "list-panes",
+            "-t",
+            &format!("{session_name}:{win_id}"),
+            "-F",
+            "#{pane_index}|#{pane_id}|#{pane_active}|#{pane_width}|#{pane_height}|#{pane_current_command}|#{pane_pid}",
+        ])?)
+    }
+
+    pub fn capture_pane(session_name: &str, win_id: u16, pane_id: u16) -> Ret<String> {
+        Ok(Self::run(&[
+            "capture-pane",
+            "-p",
+            "-t",
+            &format!("{session_name}:{win_id}.{pane_id}"),
+        ])?)
+    }
+
+    pub fn get_cmd(pid: u64) -> Ret<String> {
+        let command = Command::new("ps")
+            .args(["--ppid", &pid.to_string(), "-o", "args="])
+            .output()?;
+        if command.status.success() {
+            Ok(String::from_utf8_lossy(&command.stdout).trim().to_string())
+        } else {
+            Ok(String::from_utf8_lossy(&command.stderr).trim().to_string())
+        }
     }
 }
