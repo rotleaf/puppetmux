@@ -100,12 +100,20 @@ impl Tmux {
         ])?)
     }
 
+    pub fn select_pane_id(id: &str) -> Ret<String> {
+        Ok(Self::run(&["select-pane", "-t", id])?)
+    }
+
     pub fn kill_pane(session: &str, win_id: u16, pane_id: u16) -> Ret<String> {
         Ok(Self::run(&[
             "kill-pane",
             "-t",
             &format!("{session}:{win_id}.{pane_id}"),
         ])?)
+    }
+
+    pub fn kill_pane_id(id: &str) -> Ret<String> {
+        Ok(Self::run(&["kill-pane", "-t", id])?)
     }
 
     pub fn list_panes(session_name: &str, win_id: u16) -> Ret<String> {
@@ -125,6 +133,10 @@ impl Tmux {
             "-t",
             &format!("{session_name}:{win_id}.{pane_id}"),
         ])?)
+    }
+
+    pub fn capture_pane_id(id: &str) -> Ret<String> {
+        Ok(Self::run(&["capture-pane", "-p", "-t", id])?)
     }
 
     pub fn get_cmd(pid: u64) -> Ret<String> {

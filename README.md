@@ -153,7 +153,7 @@ select a pane to make it active
 }
 ```
 
-### GET /pane/kill/<session_name>:<window_id>.<pane_id>
+### GET /pane/kill/<session_name>:<window_id>.<pane_index>
 kill a pane 
 
 - session_name, window_id & pane_id are required 
@@ -166,7 +166,7 @@ kill a pane
 }
 ```
 
-### GET /pane/read/<session_name>:<window_id>.<pane_id>
+### GET /pane/read/<session_name>:<window_id>.<pane_index>
 read contents of a pane
 
 - session_name, window_id & pane_id are required 
@@ -179,3 +179,17 @@ _returns unfiltered content_
   "success": true
 }
 ```
+
+## using pane ids (they look like %1)
+- _responses don't differ_
+- <pane_id> is required
+
+
+### GET /pane/<pane_id>/read
+- read contents of a pane.
+
+### GET /pane/<pane_id>/kill
+- kill a pane
+
+### GET /pane/<pane_id>/select
+- select a pane 

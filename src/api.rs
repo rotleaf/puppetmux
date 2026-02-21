@@ -7,6 +7,61 @@ use warp::{
 pub struct Api;
 
 impl Api {
+    pub async fn kill_pane_id(id: &str) -> impl warp::Reply + use<> {
+        if !id.starts_with("%") || !id[1..].parse::<u16>().is_ok() {
+            return wstatus(
+                wjson(&json!({"success": false, "error": "expected %<number>"})),
+                SC::BAD_REQUEST,
+            );
+        }
+
+        match Tmux::kill_pane_id(id) {
+            Ok(_) => wstatus(
+                wjson(&json!({"success": true, "message": format!("pane id {id} killed")})),
+                SC::OK,
+            ),
+            Err(e) => wstatus(
+                wjson(&json!({"success": false, "error": e.to_string()})),
+                SC::INTERNAL_SERVER_ERROR,
+            ),
+        }
+    }
+
+    pub async fn select_pane_id(id: &str) -> impl warp::Reply + use<> {
+        if !id.starts_with("%") || !id[1..].parse::<u16>().is_ok() {
+            return wstatus(
+                wjson(&json!({"success": false, "error": "expected %<number>"})),
+                SC::BAD_REQUEST,
+            );
+        }
+        match Tmux::select_pane_id(id) {
+            Ok(_) => wstatus(
+                wjson(&json!({"success": true, "message": format!("pane id {id} selected")})),
+                SC::OK,
+            ),
+            Err(e) => wstatus(
+                wjson(&json!({"success": false, "error": e.to_string()})),
+                SC::INTERNAL_SERVER_ERROR,
+            ),
+        }
+    }
+
+    pub async fn capture_pane_id(id: &str) -> impl warp::Reply + use<> {
+        if !id.starts_with("%") || !id[1..].parse::<u16>().is_ok() {
+            return wstatus(
+                wjson(&json!({"success": false, "error": "expected %<number>"})),
+                SC::BAD_REQUEST,
+            );
+        }
+        match Tmux::capture_pane_id(id) {
+            Ok(out) => wstatus(wjson(&json!({"success": true, "output": out})), SC::OK),
+            Err(e) => wstatus(
+                wjson(&json!({"success": false, "error": e.to_string()})),
+                SC::INTERNAL_SERVER_ERROR,
+            ),
+        }
+    }
+
     pub async fn read_pane(target: &str) -> impl warp::Reply + use<> {
         if !target.contains(".") || !target.contains(":") {
             return wstatus(

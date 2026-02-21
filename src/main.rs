@@ -108,6 +108,23 @@ async fn main() {
             |targ: String| async move { Ok::<_, warp::Rejection>(Api::read_pane(&targ).await) },
         );
 
+    let read_pane_id = warp::path!("pane" / String / "read")
+        .and(warp::get())
+        .and_then(
+            |id: String| async move { Ok::<_, warp::Rejection>(Api::capture_pane_id(&id).await) },
+        );
+
+    let kill_pane_id = warp::path!("pane" / String / "kill")
+        .and(warp::get())
+        .and_then(
+            |id: String| async move { Ok::<_, warp::Rejection>(Api::kill_pane_id(&id).await) },
+        );
+
+    let select_pane_id = warp::path!("pane" / String / "select")
+        .and(warp::get())
+        .and_then(
+            |id: String| async move { Ok::<_, warp::Rejection>(Api::select_pane_id(&id).await) },
+        );
     let logger = warp::log::custom(|info| {
         let status = info.status();
         let cst = match status.as_u16() {
@@ -131,8 +148,11 @@ async fn main() {
         .or(split_window)
         .or(list_panes)
         .or(select_pane)
+        .or(select_pane_id)
         .or(kill_pane)
+        .or(kill_pane_id)
         .or(read_pane)
+        .or(read_pane_id)
         .or(not_found)
         .with(logger);
 
