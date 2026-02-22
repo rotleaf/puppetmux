@@ -143,10 +143,18 @@ impl Tmux {
         let command = Command::new("ps")
             .args(["--ppid", &pid.to_string(), "-o", "args="])
             .output()?;
+
         if command.status.success() {
             Ok(String::from_utf8_lossy(&command.stdout).trim().to_string())
         } else {
             Ok(String::from_utf8_lossy(&command.stderr).trim().to_string())
         }
+    }
+
+    pub fn send_keys(target: &str, keys: &[&str]) -> Ret<()> {
+        let mut args = vec!["send-keys", "-t", target];
+        args.extend(keys);
+        Self::run(&args)?;
+        Ok(())
     }
 }

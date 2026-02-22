@@ -1,6 +1,10 @@
 # puppetmux
 _api to control tmux (not there yet)_
 
+## Auth
+- set *API_KEY* environment variable to enable auth, the value of that environment variable becomes your api key.
+- authenticate with an header `api-key: yourkeyhere`. All requests are authenticated in this case.
+
 ## Sessions
 ### GET /session/new/<session_name>
 create a new session
@@ -193,3 +197,40 @@ _returns unfiltered content_
 
 ### GET /pane/<pane_id>/select
 - select a pane 
+
+## Command Shortcuts
+### GET /pane/<pane_id>/ctrl-c
+- send ctrl + c to a pane
+- pane_id is required
+
+#### Response 
+```json
+{
+  "message":"Ctrl+C sent to pane <pane_id>",
+  "success":true
+}
+```
+
+### GET /pane/<pane_id>/last-cmd
+- get the last command to be ran on this pane (_like pressing arrow up_)
+- pane_id is required
+
+#### Response
+```json
+{
+  "command":"curl localhost:3030/pane/%0/ctrl-c",
+  "success":true
+}
+```
+
+### GET /pane/<pane_id>/last-cmd/run
+- rerun the previous command 
+- pane_id is required
+
+#### Response 
+```json 
+{
+    "message":"last command rerun!",
+    "success":true
+}
+```

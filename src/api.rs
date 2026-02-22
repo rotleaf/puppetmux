@@ -8,7 +8,7 @@ pub struct Api;
 
 impl Api {
     pub async fn kill_pane_id(id: &str) -> impl warp::Reply + use<> {
-        if !id.starts_with("%") || !id[1..].parse::<u16>().is_ok() {
+        if !id.starts_with("%") || id[1..].parse::<u16>().is_err() {
             return wstatus(
                 wjson(&json!({"success": false, "error": "expected %<number>"})),
                 SC::BAD_REQUEST,
@@ -28,7 +28,7 @@ impl Api {
     }
 
     pub async fn select_pane_id(id: &str) -> impl warp::Reply + use<> {
-        if !id.starts_with("%") || !id[1..].parse::<u16>().is_ok() {
+        if !id.starts_with("%") || id[1..].parse::<u16>().is_err() {
             return wstatus(
                 wjson(&json!({"success": false, "error": "expected %<number>"})),
                 SC::BAD_REQUEST,
@@ -47,7 +47,7 @@ impl Api {
     }
 
     pub async fn capture_pane_id(id: &str) -> impl warp::Reply + use<> {
-        if !id.starts_with("%") || !id[1..].parse::<u16>().is_ok() {
+        if !id.starts_with("%") || id[1..].parse::<u16>().is_err() {
             return wstatus(
                 wjson(&json!({"success": false, "error": "expected %<number>"})),
                 SC::BAD_REQUEST,
@@ -94,7 +94,7 @@ impl Api {
             }
         };
 
-        match Tmux::capture_pane(&session, window, pane) {
+        match Tmux::capture_pane(session, window, pane) {
             Ok(dat) => wstatus(wjson(&json!({"success": true, "output": dat})), SC::OK),
             Err(e) => wstatus(
                 wjson(&json!({"success": false, "error": e.to_string() })),
@@ -135,7 +135,7 @@ impl Api {
             }
         };
 
-        match Tmux::kill_pane(&session, window, pane) {
+        match Tmux::kill_pane(session, window, pane) {
             Ok(_) => wstatus(
                 wjson(&json!({"success": true, "message": format!("pane {target} killed!")})),
                 SC::OK,
@@ -179,7 +179,7 @@ impl Api {
             }
         };
 
-        match Tmux::select_pane(&session, window, pane) {
+        match Tmux::select_pane(session, window, pane) {
             Ok(_) => wstatus(
                 wjson(&json!({"success": true, "message": format!("pane {target} selected!")})),
                 SC::OK,
@@ -216,18 +216,14 @@ impl Api {
             }
         };
 
-        match Tmux::list_panes(&session_name, win_idx) {
+        match Tmux::list_panes(session_name, win_idx) {
             Ok(res) => {
                 let panes = res.split("\n").collect::<Vec<&str>>();
                 let result = panes
                     .iter()
                     .map(|f| {
                         let data = f.split("|").collect::<Vec<&str>>();
-                        let is_active = if data[2].parse::<u16>().unwrap_or(0) == 1 {
-                            true
-                        } else {
-                            false
-                        };
+                        let is_active = data[2].parse::<u16>().unwrap_or(0) == 1;
 
                         let pane_command = match data[6].parse::<u64>() {
                             Ok(pid) if pid > 0 => {
@@ -244,7 +240,7 @@ impl Api {
                             "height": data[4],
                             "last_program": data[5],
                             "pid": data[6],
-                            "command": if pane_command == "" { "empty".into() } else { pane_command }
+                            "command": if pane_command.is_empty() { "empty".into() } else { pane_command }
                         })
                     })
                     .collect::<Vec<Value>>();
@@ -294,7 +290,7 @@ impl Api {
             );
         };
 
-        match Tmux::split_window(&tsession, win_idx, &or) {
+        match Tmux::split_window(tsession, win_idx, or) {
             Ok(_) => wstatus(
                 wjson(
                     &json!({"success": true, "message": format!("window {target} split {orientation}!")}),
@@ -344,7 +340,7 @@ impl Api {
                 );
             }
         };
-        match Tmux::kill_window(&session_name, idx) {
+        match Tmux::kill_window(session_name, idx) {
             Ok(_) => wstatus(
                 wjson(
                     &json!({"success": true, "message":format!("window {session_name}:{idx} killed!")}),

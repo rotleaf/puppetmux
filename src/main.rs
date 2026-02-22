@@ -1,11 +1,18 @@
 mod api;
+mod shortcuts_api;
 mod tmux;
 
 use crate::api::Api;
 use colored::Colorize;
 use rand::RngExt;
+use serde_json::json;
+use shortcuts_api::ShortcutsApi as SApi;
 use warp::Filter;
 
+use warp::{
+    http::StatusCode as SC,
+    reply::{json as wjson, with_status as wstatus},
+};
 pub type Ret<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub fn randstr() -> String {
@@ -16,6 +23,54 @@ pub fn randstr() -> String {
         .collect()
 }
 
+#[derive(Debug)]
+struct Unauthorised;
+impl warp::reject::Reject for Unauthorised {}
+
+#[derive(Debug)]
+struct NoApiKey;
+impl warp::reject::Reject for NoApiKey {}
+
+fn auth() -> impl Filter<Extract = (), Error = warp::Rejection> + Clone {
+    warp::header::optional::<String>("api-key")
+        .and_then(|key: Option<String>| async move {
+            let mykey = match std::env::var("API_KEY") {
+                Ok(k) => k,
+                Err(_) => return Ok(()),
+            };
+            match key {
+                Some(k) if k == mykey => Ok(()),
+                Some(_) => Err(warp::reject::custom(Unauthorised)),
+                None => Err(warp::reject::custom(Unauthorised)),
+            }
+        })
+        .untuple_one()
+}
+
+async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, warp::Rejection> {
+    if err.find::<Unauthorised>().is_some() {
+        return Ok(wstatus(
+            wjson(&json!({"success": false, "error": "Invalid api key"})),
+            SC::UNAUTHORIZED,
+        ));
+    }
+
+    if err.find::<NoApiKey>().is_some() {
+        return Ok(wstatus(
+            wjson(&json!({"success": false, "error": "API_KEY env var not set"})),
+            SC::INTERNAL_SERVER_ERROR,
+        ));
+    }
+
+    if err.find::<warp::reject::MissingHeader>().is_some() {
+        return Ok(wstatus(
+            wjson(&json!({"success": false, "error": "missing api-key header"})),
+            SC::UNAUTHORIZED,
+        ));
+    }
+    Err(err)
+}
+
 #[tokio::main]
 async fn main() {
     // get sessions
@@ -24,11 +79,11 @@ async fn main() {
         .and_then(|| async { Ok::<_, warp::Rejection>(Api::list_sessions().await) });
 
     // 404
-    let not_found = warp::any().map(|| {
-        warp::reply::with_status(
-            warp::reply::json(&serde_json::json!({ "error": "not found" })),
-            warp::http::StatusCode::NOT_FOUND,
-        )
+    let not_found = warp::any().and_then(|| async {
+        Ok::<_, warp::Rejection>(wstatus(
+            wjson(&json!({"success": false, "error": "not found"})),
+            SC::NOT_FOUND,
+        ))
     });
 
     let kill_session = warp::path!("session" / "kill" / String)
@@ -120,11 +175,31 @@ async fn main() {
             |id: String| async move { Ok::<_, warp::Rejection>(Api::kill_pane_id(&id).await) },
         );
 
+    // pane id %<number>
     let select_pane_id = warp::path!("pane" / String / "select")
         .and(warp::get())
         .and_then(
             |id: String| async move { Ok::<_, warp::Rejection>(Api::select_pane_id(&id).await) },
         );
+
+    // run last cmd
+    let last_cmd_run = warp::path!("pane" / String / "last-cmd" / "run")
+        .and(warp::get())
+        .and_then(|pane_id: String| async move {
+            Ok::<_, warp::Rejection>(SApi::last_command_wpid(&pane_id).await)
+        });
+
+    // check last cmd
+    let last_cmd_check = warp::path!("pane" / String / "last-cmd")
+        .and(warp::get())
+        .and_then(|pid: String| async move {
+            Ok::<_, warp::Rejection>(SApi::check_last_command_wpid(&pid).await)
+        });
+    // send ctrl+c
+    let ctrl_c_wpid = warp::path!("pane" / String / "ctrl-c")
+        .and(warp::get())
+        .and_then(|pid: String| async move { Ok::<_, warp::Rejection>(SApi::ctrl_c(&pid).await) });
+
     let logger = warp::log::custom(|info| {
         let status = info.status();
         let cst = match status.as_u16() {
@@ -134,28 +209,45 @@ async fn main() {
             500..=599 => format!("{}", status.as_str().magenta().bold()),
             _ => format!("{}", status),
         };
-        println!("{} {} {}", cst, info.method(), info.path());
+        println!(" 🪵 {} {} {}", cst, info.method(), info.path());
     });
 
-    let routes = list_sessions
-        .or(new_session_) // random session name
-        .or(kill_window)
-        .or(new_session) // named session
-        .or(kill_session)
-        .or(list_windows)
-        .or(new_window_) // random window name
-        .or(new_window) // named window
-        .or(split_window)
-        .or(list_panes)
-        .or(select_pane)
-        .or(select_pane_id)
-        .or(kill_pane)
-        .or(kill_pane_id)
-        .or(read_pane)
-        .or(read_pane_id)
-        .or(not_found)
+    let routes = auth()
+        .and(
+            list_sessions
+                .or(new_session_) // random session name
+                .or(kill_window)
+                .or(new_session) // named session
+                .or(kill_session)
+                .or(list_windows)
+                .or(new_window_) // random window name
+                .or(new_window) // named window
+                .or(split_window)
+                .or(list_panes)
+                .or(select_pane)
+                .or(select_pane_id)
+                .or(kill_pane)
+                .or(kill_pane_id)
+                .or(read_pane)
+                .or(read_pane_id)
+                .or(last_cmd_run)
+                .or(last_cmd_check)
+                .or(ctrl_c_wpid)
+                .or(not_found),
+        )
+        .recover(handle_rejection)
         .with(logger);
 
-    println!("{} running on port 3030", "PuppetMux".bold().blue());
+    println!(" » {} running on port 3030", "PuppetMux".bold().blue());
+    let auth_enabled = if std::env::var("API_KEY").is_ok() {
+        format!("{}", "On".green().bold())
+    } else {
+        format!(
+            "{} ({})",
+            "Off".red().bold(),
+            "set API_KEY env var to enable auth".bright_black()
+        )
+    };
+    println!(" » Auth: {auth_enabled}");
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
